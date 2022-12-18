@@ -45,7 +45,7 @@ Displays teh output as a stats object ( -jamfea will change this )
 
 #### -output="apps"
 Displays the apps that have CVE's as a JSON Object by default
-{"app_list": [{"app_name": "Google Chrome.app", "bundle_id": "com.google.chrome", "version":"101.1.1.1": "stats": {"critical":10, "high":11, "medium":1, "low":0}]}
+
 
 *default*: <code>{"app_list": [{"app_name": "Google Chrome.app", "bundle_id": "com.google.chrome", "version":"101.1.1.1": "stats": {"critical":10, "high":11, "medium":1, "low":0}]}</code>
 
@@ -56,14 +56,14 @@ Will give a boolean statement on if a specific CVE exists on the device
 
 *default*: {"is_vulneable": true"}
 
-*-jamfea*:  &lt;result&gt;true&lt;/result&gt;
+*-jamfea*:  <code>&lt;result&gt;true&lt;/result&gt;</code>
 
 ### -splunk_token="YourHECToken" -splunk_host="YourSplunkOut"
 This will take the results and format them for a Splunk HEC collector. with a sourcetype of featers_vuln:mac_os:$Detection_Type based on if the detection is an app, macos, terminal, or other type.
 
 #### -jamfea
 Will formate the output to work with a Jamf extension attribute scipt
-*-jamfea*:  &lt;result&gt;Output Object Text&lt;/result&gt;
+*-jamfea*: <code> &lt;result&gt;Output Object Text&lt;/result&gt;</code>
 
 
 ##Examples: 

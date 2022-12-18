@@ -31,7 +31,7 @@ Will give a boolean statement on if a specific CVE exists on the device
 *default*: {"is_vulneable": true"}
 
 *-jamfea*: """xml
-<result>true</result>
+&lt;result&gt;true&lt;/resul&gt;
 ."""
 
 ### -cisabod

@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# User Temp Directory
+temp/*
+
+# Apple DS_Store
+**/.DS_Store

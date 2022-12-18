@@ -63,7 +63,7 @@ if __name__ == "__main__":
         results['os'] = getSystemInfo()
 
     if '-OnlyCVE' in sys.argv:
-        url = "https://usad0a6q7k.execute-api.us-east-1.amazonaws.com/Prod/v1/webhooks/macos/systemprofiler"
+        url = "https://feathers.pazops.com/api/macos/system_profiler"
         results = requests.post(url=url, data=json.dumps(results)).json()
     if '-CheckRunning' in sys.argv:
         results['runningCVE'] = getRunningPids(cveDetails=results['cveDetails'])

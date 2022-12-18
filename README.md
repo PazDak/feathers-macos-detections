@@ -30,7 +30,9 @@ Will give a boolean statement on if a specific CVE exists on the device
 
 *default*: {"is_vulneable": true"}
 
-*-jamfea*: """xml <code><result>true</result></code> """
+*-jamfea*: """xml
+<result>true</result>
+."""
 
 ### -cisabod
 Will only print CVE's that have a CVE with a Known Exposure as defined by CISA

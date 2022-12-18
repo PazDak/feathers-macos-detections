@@ -27,7 +27,9 @@ Displays the apps that have CVE's as a JSON Object by default
 
 ### -cve="CVE-2022-1010"
 Will give a boolean statement on if a specific CVE exists on the device
+
 *default*: {"is_vulneable": true"}
+
 *-jamfea*: <result>true</result>
 
 ### -cisabod

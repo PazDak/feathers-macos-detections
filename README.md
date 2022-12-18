@@ -32,16 +32,16 @@ Will exclude any CVE where the NVD severity is less than the stated value
 Displays a list of the cve's as a JSON LIST
 {"cve_list":["CVE-2022-1010", "CVE-2022-1011"]}
 
-*-jamfea*:&lt;result&gt;CVE-2022-1010,CVE-2022-1011&lt;/result&gt;
+*-jamfea*: <code>&lt;result&gt;CVE-2022-1010,CVE-2022-1011&lt;/result&gt;</code>
 
 ### Output Methods
 
 #### -output="stats"
 Displays teh output as a stats object ( -jamfea will change this )
 
-*default*: {"critical":10, "high":11, "medium":1, "low":0}
+*default*: <code>{"critical":10, "high":11, "medium":1, "low":0}</code>
 
-*-jamfea*:  &lt;result&gt;true&lt;/result&gt;
+*-jamfea*:  <code>&lt;result&gt;true&lt;/result&gt;/<code>
 
 #### -output="apps"
 Displays the apps that have CVE's as a JSON Object by default
@@ -49,12 +49,12 @@ Displays the apps that have CVE's as a JSON Object by default
 
 *default*: <code>{"app_list": [{"app_name": "Google Chrome.app", "bundle_id": "com.google.chrome", "version":"101.1.1.1": "stats": {"critical":10, "high":11, "medium":1, "low":0}]}</code>
 
--jamfea: <result>Google Chrome.app, Safari.app</result>
+-jamfea: <code><result>Google Chrome.app, Safari.app</result></code>
 
 #### -cve="CVE-2022-1010"
 Will give a boolean statement on if a specific CVE exists on the device
 
-*default*: {"is_vulneable": true"}
+*default*: <code>{"is_vulneable": true"}</code>
 
 *-jamfea*:  <code>&lt;result&gt;true&lt;/result&gt;</code>
 
@@ -67,6 +67,6 @@ Will formate the output to work with a Jamf extension attribute scipt
 
 
 ##Examples: 
-<code>python3 feathers -token="YourToken"<code>
+<code>python3 feathers -token="YourToken"</code>
 
 #Errors: 

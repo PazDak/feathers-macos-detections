@@ -41,7 +41,7 @@ Displays teh output as a stats object ( -jamfea will change this )
 
 *default*: <code>{"critical":10, "high":11, "medium":1, "low":0}</code>
 
-*-jamfea*:  <code>&lt;result&gt;true&lt;/result&gt;/</code>
+*-jamfea*:  <code>&lt;result&gt;true&lt;/result&gt;</code>
 
 #### -output="apps"
 Displays the apps that have CVE's as a JSON Object by default

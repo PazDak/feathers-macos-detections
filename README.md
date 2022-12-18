@@ -47,6 +47,8 @@ Will only print CVE's that have a CVE with a Known Exposure as defined by CISA A
 Will formate the output to work with a Jamf extension attribute scipt
 *-jamfea*:  &lt;result&gt;Output Object Text&lt;/result&gt;
 
-## python3 feathers -token="YourToken" -c
+
+##Examples: 
+<code>python3 feathers -token="YourToken"<code>
 
 #Errors: 

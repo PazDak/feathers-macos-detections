@@ -24,7 +24,7 @@ Displays teh output as a stats object ( -jamfea will change this )
 
 *default*: {"critical":10, "high":11, "medium":1, "low":0}
 
-*-jamfea*:&lt;result&gt;true&lt;/result&gt;
+*-jamfea*:  &lt;result&gt;true&lt;/result&gt;
 
 ### -output="apps"
 Displays the apps that have CVE's as a JSON Object by default
@@ -35,7 +35,7 @@ Will give a boolean statement on if a specific CVE exists on the device
 
 *default*: {"is_vulneable": true"}
 
-*-jamfea*:&lt;result&gt;true&lt;/result&gt;
+*-jamfea*:  &lt;result&gt;true&lt;/result&gt;
 
 ### -cisabod
 Will only print CVE's that have a CVE with a Known Exposure as defined by CISA
@@ -45,7 +45,7 @@ Will only print CVE's that have a CVE with a Known Exposure as defined by CISA A
 
 ### -jamfea
 Will formate the output to work with a Jamf extension attribute scipt
-&lt;result&gt;Output Object Text&lt;/result&gt;
+*-jamfea*:  &lt;result&gt;Output Object Text&lt;/result&gt;
 
 ## python3 feathers -token="YourToken" -c
 

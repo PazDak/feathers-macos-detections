@@ -30,9 +30,8 @@ Will give a boolean statement on if a specific CVE exists on the device
 
 *default*: {"is_vulneable": true"}
 
-*-jamfea*: """xml
-&lt;result&gt;true&lt;/resul&gt;
-."""
+*-jamfea*:
+&lt;result&gt;true&lt;/result&gt;
 
 ### -cisabod
 Will only print CVE's that have a CVE with a Known Exposure as defined by CISA
@@ -42,7 +41,7 @@ Will only print CVE's that have a CVE with a Known Exposure as defined by CISA A
 
 ### -jamfea
 Will formate the output to work with a Jamf extension attribute scipt
-<results>Response</response>
+&lt;result&gt;Output Object Text&lt;/result&gt;
 
 ## python3 feathers -token="YourToken" -c
 

@@ -30,6 +30,10 @@ Displays teh output as a stats object ( -jamfea will change this )
 Displays the apps that have CVE's as a JSON Object by default
 {"app_list": [{"app_name": "Google Chrome.app", "bundle_id": "com.google.chrome", "version":"101.1.1.1": "stats": {"critical":10, "high":11, "medium":1, "low":0}]}
 
+*default*: <code>{"app_list": [{"app_name": "Google Chrome.app", "bundle_id": "com.google.chrome", "version":"101.1.1.1": "stats": {"critical":10, "high":11, "medium":1, "low":0}]}</code>
+
+-jamfea: <result>true</result>
+
 ### -cve="CVE-2022-1010"
 Will give a boolean statement on if a specific CVE exists on the device
 

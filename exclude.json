@@ -1,1 +1,8 @@
-
+{
+  "apps": {
+    "ignoreBundleIds": ["com.apple.print.PrinterProxy"],
+    "ignorePaths": [],
+    "ignoreAppNames": [],
+    "rules" : {}
+  }
+}

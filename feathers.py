@@ -181,7 +181,21 @@ if __name__ == "__main__":
 
     url = "https://feathers.pazops.com/api/macos/system_profiler"
     results_hash = hashlib.md5(json.dumps(results, sort_keys=True).encode()).hexdigest()
-    results = requests.post(url=url, data=json.dumps(results, sort_keys=True)).json()
+    vuln_results = requests.post(url=url, data=json.dumps(results, sort_keys=True)).json()
     write_encrypted_cache(fernet_key=get_fernet_key(args['token']), data_dict=results)
+
+    for app_data in vuln_results['app_data']:
+        if app_data['feathers_supported'] and app_data['vuln_data'].get("cve_list", None) is not None:
+
+            for app in results['apps']:
+                if app['app_hash'] == app_data['app_hash']:
+                    app_name = app["_name"]
+                    app_version = app['version']
+
+
+                    cmd = f"say you have a vulnerable app with the name {app_name} and version {app_version} please patch it."
+                    time.sleep(1)
+                    pipe_mac_terminal_command(cmd=cmd)
+    #print(json.dumps(results, indent=2, sort_keys=True))
 
 

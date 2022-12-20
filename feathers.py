@@ -7,6 +7,10 @@ from subprocess import PIPE, STDOUT
 import subprocess
 import sys
 import hashlib
+import base64
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives import hashes
+from cryptography.fernet import Fernet
 try:
     from cryptography.fernet import Fernet
 except Exception as E:
@@ -22,12 +26,46 @@ except Exception as E:
     raise Exception('You need requests run the next line: \npip install requests') from E
 
 
-
 with open("exclude.json", 'r', encoding="utf-8") as fp:
     exclude_rules = json.loads(fp.read())
 
 
+def get_fernet_key(encrypt_key) -> str:
+    salt = b"SuperSecretSalt"
+    iterations = 390000
+    kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=salt, iterations=iterations)
+    key = base64.urlsafe_b64encode(kdf.derive(encrypt_key.encode('utf-8')))
+    return key
 
+def get_encrypted_cache(temp_dir="temp/", fernet_key="") -> dict:
+    """
+    Returns the encrypted data as a Dictionary Object
+    :param temp_dir: location of teh cached.enc file
+    :param encrypt_key: string of the encryption key
+    :return: dict of the encryption object
+    """
+    try:
+        fernet = Fernet(fernet_key)
+        with open(f'{temp_dir}cached.enc', 'r', encoding="utf-8") as fp:
+            enc_s = fp.read()
+        s = fernet.decrypt(enc_s)
+    except Exception:
+        return None
+    return json.loads(s)
+
+def write_encrypted_cache(temp_dir="temp/", fernet_key="", data_dict={}) -> bool:
+    """
+    Writes the encrypted Data in the provided directory as cached.enc
+    :param temp_dir: path to the temp directory
+    :param encrypt_key: STR of the encryption key
+    :param data_dict: Data to write
+    :return: Boolean if written
+    """
+    fernet = Fernet(fernet_key)
+    enc_s = fernet.encrypt(data=json.dumps(data_dict, sort_keys=True).encode())
+    with open(f'{temp_dir}cached.enc', 'w+', encoding="utf-8") as fp:
+        fp.write(enc_s.decode('utf-8'))
+    return True
 def pipe_mac_terminal_command_json(cmd):
     """
     Pipes a mac terminal command and returns a Dict object
@@ -126,18 +164,24 @@ def get_running_pids(cve_details: list) -> list:
 
 if __name__ == "__main__":
     commands = ['token', 'cisa', 'cisapastdue', 'severity', 'output', 'cve', 'splunk_token', 'splunk_host']
-
     results = {}
     print(sys.argv)
     args = {}
     for arg in sys.argv:
         if '-token' in arg:
             args['token'] = arg.split("=")[1].replace("\"", "")
+    if 'token' not in args:
+        raise Exception('Missing Token, required value \nExample python3 feathers.py -token="yourToken"')
+    prev = get_encrypted_cache(fernet_key=get_fernet_key(args['token']))
+
+    if prev is None:
+        raise Exception
     results['apps'] = get_mac_system_apps()
     results['os'] = get_mac_system_info()
 
     url = "https://feathers.pazops.com/api/macos/system_profiler"
     results_hash = hashlib.md5(json.dumps(results, sort_keys=True).encode()).hexdigest()
     results = requests.post(url=url, data=json.dumps(results, sort_keys=True)).json()
-    print(json.dumps(results, indent=2, sort_keys=True))
-    print(results_hash)
+    write_encrypted_cache(fernet_key=get_fernet_key(args['token']), data_dict=results)
+
+

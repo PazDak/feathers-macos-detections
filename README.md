@@ -27,14 +27,17 @@ Will only print CVE's that have a CVE with a Known Exposure as defined by CISA A
 
 #### -severity="high"
 Will exclude any CVE where the NVD severity is less than the stated value
+### Output Methods
+adding *-jamfea* as the final tag will convert any of the displayed outputs to be functional to work with as an Extension Attribute value to work with Jamf Pro
+https://feathers.pazops.com/about/jamf_ea
 
 #### -output="cve_list"
 Displays a list of the cve's as a JSON LIST
-{"cve_list":["CVE-2022-1010", "CVE-2022-1011"]}
+
+*default*: <code>{"cve_list":["CVE-2022-1010", "CVE-2022-1011"]}</code>
 
 *-jamfea*: <code>&lt;result&gt;CVE-2022-1010,CVE-2022-1011&lt;/result&gt;</code>
 
-### Output Methods
 
 #### -output="stats"
 Displays teh output as a stats object ( -jamfea will change this )
@@ -49,7 +52,7 @@ Displays the apps that have CVE's as a JSON Object by default
 
 *default*: <code>{"app_list": [{"app_name": "Google Chrome.app", "bundle_id": "com.google.chrome", "version":"101.1.1.1": "stats": {"critical":10, "high":11, "medium":1, "low":0}]}</code>
 
--jamfea: <code><result>Google Chrome.app, Safari.app</result></code>
+*-jamfea*: <code><result>Google Chrome.app, Safari.app</result></code>
 
 #### -cve="CVE-2022-1010"
 Will give a boolean statement on if a specific CVE exists on the device

@@ -1,6 +1,7 @@
 """
 Main Execution of the Feathers MacOS Detection Agent
 """
+import datetime
 import json
 import time
 from subprocess import PIPE, STDOUT
@@ -10,38 +11,52 @@ import hashlib
 import base64
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
-from cryptography.fernet import Fernet
+import logging
+
 try:
     from cryptography.fernet import Fernet
 except Exception as E:
-    import_errors = True
     print("You need cryptography run the next line: \npip install cryptography")
     raise Exception('You need requests run the next line: \npip install cryptography') from E
 
 try:
     import requests
 except Exception as E:
-    import_errors = True
     print("You need requests run the next line: \npip install requests")
     raise Exception('You need requests run the next line: \npip install requests') from E
 
+try:
+    with open("exclude.json", 'r', encoding="utf-8") as fp:
+        exclude_rules = json.loads(fp.read())
+except FileNotFoundError:
+    exclude_rules = {
+        "apps": {
+            "ignoreBundleIds": ["com.apple.print.PrinterProxy"],
+            "ignorePaths": [],
+            "ignoreAppNames": [],
+            "rules": {}
+        }
+    }
 
-with open("exclude.json", 'r', encoding="utf-8") as fp:
-    exclude_rules = json.loads(fp.read())
 
-
-def get_fernet_key(encrypt_key) -> str:
+def get_fernet_key(encrypt_key) -> bytes:
+    """
+    Converts a String object to a 64 byte length key for python's encryption classes
+    :param encrypt_key: String used in the
+    :return: BYTES object of a Ferret KEY
+    """
     salt = b"SuperSecretSalt"
     iterations = 390000
     kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=salt, iterations=iterations)
     key = base64.urlsafe_b64encode(kdf.derive(encrypt_key.encode('utf-8')))
     return key
 
+
 def get_encrypted_cache(temp_dir="temp/", fernet_key="") -> dict:
     """
     Returns the encrypted data as a Dictionary Object
-    :param temp_dir: location of teh cached.enc file
-    :param encrypt_key: string of the encryption key
+    :param temp_dir: location of the 'cached.enc' file
+    :param fernet_key: string of the encryption key
     :return: dict of the encryption object
     """
     try:
@@ -49,9 +64,12 @@ def get_encrypted_cache(temp_dir="temp/", fernet_key="") -> dict:
         with open(f'{temp_dir}cached.enc', 'r', encoding="utf-8") as fp:
             enc_s = fp.read()
         s = fernet.decrypt(enc_s)
+    except FileNotFoundError:
+        return {}
     except Exception:
-        return None
+        raise ValueError
     return json.loads(s)
+
 
 def write_encrypted_cache(temp_dir="temp/", fernet_key="", data_dict={}) -> bool:
     """
@@ -66,6 +84,8 @@ def write_encrypted_cache(temp_dir="temp/", fernet_key="", data_dict={}) -> bool
     with open(f'{temp_dir}cached.enc', 'w+', encoding="utf-8") as fp:
         fp.write(enc_s.decode('utf-8'))
     return True
+
+
 def pipe_mac_terminal_command_json(cmd):
     """
     Pipes a mac terminal command and returns a Dict object
@@ -162,40 +182,107 @@ def get_running_pids(cve_details: list) -> list:
     return running_pid_results
 
 
-if __name__ == "__main__":
-    commands = ['token', 'cisa', 'cisapastdue', 'severity', 'output', 'cve', 'splunk_token', 'splunk_host']
-    results = {}
-    print(sys.argv)
-    args = {}
-    for arg in sys.argv:
-        if '-token' in arg:
-            args['token'] = arg.split("=")[1].replace("\"", "")
-    if 'token' not in args:
-        raise Exception('Missing Token, required value \nExample python3 feathers.py -token="yourToken"')
-    prev = get_encrypted_cache(fernet_key=get_fernet_key(args['token']))
+def get_args() -> dict:
+    """
+    Get a dictionary of the command line provided arguments
+    :return: dict of the command line args formated
+    """
+    _args = {}
+    valid_outputs = ['cve_list', 'stats', 'cisa', 'cisa_past_due']
+    _output_set = False
+    for _arg in sys.argv:
+        if '-token' in _arg:
+            _args['token'] = _arg.split("=")[1].replace("\"", "")
 
-    if prev is None:
-        raise Exception
-    results['apps'] = get_mac_system_apps()
-    results['os'] = get_mac_system_info()
+        if '-jamfea' in _args:
+            _args['jamfea'] = True
+        else:
+            _args['jamfea'] = False
+
+        if '-output' in _arg and not _output_set:
+            value = _arg.split("=")[1].replace("\"", "")
+            if value in valid_outputs:
+                _args['output'] = value
+                _output_set = True
+    return _args
+
+def get_system_details() -> dict:
+    """
+    Gets the System Details
+    :return:
+    """
+    _result = {}
+    _result['apps'] = get_mac_system_apps()
+    _result['os'] = get_mac_system_info()
+    #ToDo build _result hash
+    _result['lastRun'] = time.time()
+    return _result
+
+
+if __name__ == "__main__":
+    commands = ['token', 'cisa', 'cisapastdue', 'severity', 'output', 'cve', 'splunk_token', 'splunk_host', 'jamfea', 'force']
+    args = get_args()
+
+    if 'token' not in args:
+        raise Exception('Missing Token, required value \nExample python3 feathers.py -token="yourToken\nGet a token at https://feathers.pazops.com"')
+
+    try:
+        prev = get_encrypted_cache(fernet_key=get_fernet_key(args['token']))
+    except ValueError:
+        print("Error with Key")
+        exit()
 
     url = "https://feathers.pazops.com/api/macos/system_profiler"
+    results = get_system_details()
     results_hash = hashlib.md5(json.dumps(results, sort_keys=True).encode()).hexdigest()
     vuln_results = requests.post(url=url, data=json.dumps(results, sort_keys=True)).json()
     write_encrypted_cache(fernet_key=get_fernet_key(args['token']), data_dict=results)
-
+    vuln_apps = []
+    stats = {"critical": 0, "high": 0, "medium": 0, "low": 0}
+    cve_list = []
+    app_list = []
     for app_data in vuln_results['app_data']:
         if app_data['feathers_supported'] and app_data['vuln_data'].get("cve_list", None) is not None:
-
+            # Get the Application Data
             for app in results['apps']:
                 if app['app_hash'] == app_data['app_hash']:
                     app_name = app["_name"]
                     app_version = app['version']
+                    app_bundle_id = app['bundleId']
+                    app_path = app['path']
 
+                    app_stats = {"app_name": app_name,"bundle_id":app_bundle_id, "app_version":app_version, "app_path": app_path, "stats": {"critical": 0, "high": 0, "medium": 0, "low": 0}, "cisa": False, "cisa_past_due": False, "cve_list": []}
+                    for vuln in app_data['vuln_data'].get("cve_list", None):
+                        #
+                        cve_list.append(vuln['cve_id'])
+                        stats[vuln['cvss_severity'].lower()] += 1
 
-                    cmd = f"say you have a vulnerable app with the name {app_name} and version {app_version} please patch it."
-                    time.sleep(1)
-                    pipe_mac_terminal_command(cmd=cmd)
-    #print(json.dumps(results, indent=2, sort_keys=True))
+                        app_stats['cve_list'].append(vuln['cve_id'])
+                        app_stats['stats'][vuln['cvss_severity'].lower()] += 1
 
+                    app_list.append(app_stats)
+    stats['total'] = stats['critical'] + stats['high'] + stats['medium'] + stats['low']
+    cve_list = list(set(cve_list))
+
+    if 'output' in args:
+        if args['output'] == "apps":
+            if args['jamfea']:
+                print(f"<result>{json.dumps(app_list)}</result>")
+            else:
+                print(json.dumps(app_list))
+        if args['output'] == "stats":
+            if args['jamfea']:
+                print(f"<result>{json.dumps(stats)}</result>")
+            else:
+                print(json.dumps(stats))
+        if args['output'] == "cve_list":
+            if args['jamfea']:
+                print(f"<result>{json.dumps(cve_list)}</result>")
+            else:
+                print(json.dumps(cve_list))
+    else:
+        if args['jamfea']:
+            print(f"<result>{json.dumps(app_list)}</result>")
+        else:
+            print(json.dumps(app_list))
 

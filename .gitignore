@@ -130,6 +130,6 @@ dmypy.json
 
 # User Temp Directory
 temp/*
-
+temp2/*
 # Apple DS_Store
 **/.DS_Store

@@ -1,6 +1,7 @@
 """
 Main Execution of the Feathers MacOS Detection Agent
 """
+import os
 import datetime
 import json
 import time
@@ -12,6 +13,9 @@ import base64
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
 import logging
+
+if not os.path.exists("temp/"):
+    os.mkdir("temp/")
 
 try:
     from cryptography.fernet import Fernet
@@ -194,6 +198,11 @@ def get_args() -> dict:
         if '-token' in _arg:
             _args['token'] = _arg.split("=")[1].replace("\"", "")
 
+        if '-force' in _arg:
+            _args['force'] = True
+        else:
+            _args['force'] = False
+
         if '-jamfea' in _args:
             _args['jamfea'] = True
         else:
@@ -204,7 +213,9 @@ def get_args() -> dict:
             if value in valid_outputs:
                 _args['output'] = value
                 _output_set = True
+
     return _args
+
 
 def get_system_details() -> dict:
     """
@@ -231,12 +242,18 @@ if __name__ == "__main__":
     except ValueError:
         print("Error with Key")
         exit()
-
-    url = "https://feathers.pazops.com/api/macos/system_profiler"
-    results = get_system_details()
-    results_hash = hashlib.md5(json.dumps(results, sort_keys=True).encode()).hexdigest()
-    vuln_results = requests.post(url=url, data=json.dumps(results, sort_keys=True)).json()
+    time_last_run = time.time() -prev['lastRun']
+    if time_last_run > 3600 or args['force']:
+        results = get_system_details()
+        url = "https://feathers.pazops.com/api/macos/system_profiler"
+        results['vuln_info'] = requests.post(url=url, data=json.dumps(results, sort_keys=True)).json()
+        write_encrypted_cache(fernet_key=get_fernet_key(args['token']), data_dict=results)
+    else:
+        results = prev
+    vuln_results = results['vuln_info']
     write_encrypted_cache(fernet_key=get_fernet_key(args['token']), data_dict=results)
+
+    #Build the Apps List
     vuln_apps = []
     stats = {"critical": 0, "high": 0, "medium": 0, "low": 0}
     cve_list = []
@@ -285,4 +302,3 @@ if __name__ == "__main__":
             print(f"<result>{json.dumps(app_list)}</result>")
         else:
             print(json.dumps(app_list))
-

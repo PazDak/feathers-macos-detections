@@ -203,7 +203,7 @@ def get_args() -> dict:
         else:
             _args['force'] = False
 
-        if '-jamfea' in _args:
+        if '-jamfea' in _arg:
             _args['jamfea'] = True
         else:
             _args['jamfea'] = False
@@ -233,23 +233,32 @@ def get_system_details() -> dict:
 if __name__ == "__main__":
     commands = ['token', 'cisa', 'cisapastdue', 'severity', 'output', 'cve', 'splunk_token', 'splunk_host', 'jamfea', 'force']
     args = get_args()
-
     if 'token' not in args:
         raise Exception('Missing Token, required value \nExample python3 feathers.py -token="yourToken\nGet a token at https://feathers.pazops.com"')
+
+    headers = {'Content-Type': 'application/json', 'Authorization': f'Bearer {args["token"]}'}
+    url = "https://feathers.pazops.com/api/macos/system_profiler"
 
     try:
         prev = get_encrypted_cache(fernet_key=get_fernet_key(args['token']))
     except ValueError:
-        print("Error with Key")
-        exit()
-    time_last_run = time.time() -prev['lastRun']
-    if time_last_run > 3600 or args['force']:
+        prev = {}
+
+    if 'lastRun' in prev:
+        time_last_run = time.time() - prev['lastRun']
+        if time_last_run > 3600 or args['force']:
+            results = get_system_details()
+            url = "https://feathers.pazops.com/api/macos/system_profiler"
+            results['vuln_info'] = requests.post(url=url, data=json.dumps(results, sort_keys=True), headers=headers, timeout=10).json()
+            write_encrypted_cache(fernet_key=get_fernet_key(args['token']), data_dict=results)
+        else:
+            results = prev
+    else:
         results = get_system_details()
         url = "https://feathers.pazops.com/api/macos/system_profiler"
-        results['vuln_info'] = requests.post(url=url, data=json.dumps(results, sort_keys=True)).json()
+        results['vuln_info'] = requests.post(url=url, data=json.dumps(results, sort_keys=True), headers=headers).json()
         write_encrypted_cache(fernet_key=get_fernet_key(args['token']), data_dict=results)
-    else:
-        results = prev
+
     vuln_results = results['vuln_info']
     write_encrypted_cache(fernet_key=get_fernet_key(args['token']), data_dict=results)
 

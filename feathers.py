@@ -152,6 +152,14 @@ def get_mac_system_apps() -> list:
             result_apps.append(app)
     return result_apps
 
+def get_mac_hardware_info():
+    """
+    Gathers specific hardware information
+    :return: hardwareVersions Dict
+    """
+    hw_details = pipe_mac_terminal_command_json("system_profiler SPHardwareDataType -json")['SPHardwareDataType'][0]
+    return {"serial_number": hw_details['serial_number'], "uuid": hw_details['platform_UUID'], "platform_hardware": hw_details['machine_model']}
+
 
 def get_mac_system_info():
     """
@@ -225,6 +233,7 @@ def get_system_details() -> dict:
     _result = {}
     _result['apps'] = get_mac_system_apps()
     _result['os'] = get_mac_system_info()
+    _result['device'] = get_mac_hardware_info()
     #ToDo build _result hash
     _result['lastRun'] = time.time()
     return _result

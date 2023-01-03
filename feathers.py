@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Main Execution of the Feathers MacOS Detection Agent
 """
@@ -12,6 +13,7 @@ import hashlib
 import base64
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
+
 import logging
 
 if not os.path.exists("temp/"):

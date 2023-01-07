@@ -76,6 +76,70 @@ def get_encrypted_cache(temp_dir="temp/", fernet_key="") -> dict:
         raise ValueError
     return json.loads(s)
 
+def get_jamf_ea_format(ea_key, results):
+    valid_keys = ['cve.list', 'cve.count', 'cve.countCritical', 'cve.countHigh', 'cve.CISA', 'cve.CISAPastDue']
+    if ea_key not in valid_keys:
+        return "invalid key"
+
+    if ea_key == "cve.list":
+        cve_list = []
+        for app_result in results['app_data']:
+            if app_result['vuln_data'] != {}:
+                if len(app_result['vuln_data']['cve_list'])> 0:
+                    for vuln in app_result['vuln_data']['cve_list']:
+                        cve_list.append(vuln['cve_id'])
+        cve_list = list(set(cve_list))
+        s = ""
+        for cve in cve_list:
+            s = s + f"{cve},"
+        s = s[:-1]
+        return s
+
+    if ea_key == "cve.count":
+        count = 0
+        for app_result in results['app_data']:
+            if app_result['vuln_data'] != {}:
+                if len(app_result['vuln_data']['cve_list']) > 0:
+                    count += len(app_result['vuln_data']['cve_list'])
+        return count
+
+    if ea_key == "cve.countHigh":
+        count = 0
+        for app_result in results['app_data']:
+            if app_result['vuln_data'] != {}:
+                if len(app_result['vuln_data']['cve_list']) > 0:
+                    for vuln in app_result['vuln_data']['cve_list']:
+                        if vuln['cvss_severity'] == "HIGH":
+                            count += 1
+        return count
+
+    if ea_key == "cve.countCritical":
+        count = 0
+        for app_result in results['app_data']:
+            if app_result['vuln_data'] != {}:
+                if len(app_result['vuln_data']['cve_list']) > 0:
+                    for vuln in app_result['vuln_data']['cve_list']:
+                        if vuln['cvss_severity'] == "CRITICAL":
+                            count += 1
+        return count
+    if ea_key == "cve.CISA":
+        for app_result in results['app_data']:
+            if app_result['vuln_data'] != {}:
+                if len(app_result['vuln_data']['cve_list']) > 0:
+                    for vuln in app_result['vuln_data']['cve_list']:
+                        if 'cisa' in vuln:
+                            return True
+        return False
+
+    if ea_key == "cve.CISAPastDue":
+        for app_result in results['app_data']:
+            if app_result['vuln_data'] != {}:
+                if len(app_result['vuln_data']['cve_list']) > 0:
+                    for vuln in app_result['vuln_data']['cve_list']:
+                        if 'cisa' in vuln:
+                            if datetime.datetime.strftime(vuln['cisa']['dueDate'], "%Y-%m-%d") > datetime.datetime.now():
+                                return True
+        return False
 
 def write_encrypted_cache(temp_dir="temp/", fernet_key="", data_dict={}) -> bool:
     """
@@ -214,9 +278,7 @@ def get_args() -> dict:
             _args['force'] = False
 
         if '-jamfea' in _arg:
-            _args['jamfea'] = True
-        else:
-            _args['jamfea'] = False
+            _args['jamfea'] = _arg.split("=")[1].replace("\"", "")
 
         if '-output' in _arg and not _output_set:
             value = _arg.split("=")[1].replace("\"", "")
@@ -296,29 +358,12 @@ if __name__ == "__main__":
 
                         app_stats['cve_list'].append(vuln['cve_id'])
                         app_stats['stats'][vuln['cvss_severity'].lower()] += 1
-
                     app_list.append(app_stats)
     stats['total'] = stats['critical'] + stats['high'] + stats['medium'] + stats['low']
     cve_list = list(set(cve_list))
 
-    if 'output' in args:
-        if args['output'] == "apps":
-            if args['jamfea']:
-                print(f"<result>{json.dumps(app_list)}</result>")
-            else:
-                print(json.dumps(app_list))
-        if args['output'] == "stats":
-            if args['jamfea']:
-                print(f"<result>{json.dumps(stats)}</result>")
-            else:
-                print(json.dumps(stats))
-        if args['output'] == "cve_list":
-            if args['jamfea']:
-                print(f"<result>{json.dumps(cve_list)}</result>")
-            else:
-                print(json.dumps(cve_list))
+    if args.get('jamfea', None) is not None:
+        print(f"<result>{get_jamf_ea_format(args.get('jamfea'), results=vuln_results)}</result>")
     else:
-        if args['jamfea']:
-            print(f"<result>{json.dumps(app_list)}</result>")
-        else:
-            print(json.dumps(app_list))
+        print("other")
+

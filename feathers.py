@@ -20,12 +20,6 @@ if not os.path.exists("temp/"):
     os.mkdir("temp/")
 
 try:
-    from cryptography.fernet import Fernet
-except Exception as E:
-    print("You need cryptography run the next line: \npip install cryptography")
-    raise Exception('You need requests run the next line: \npip install cryptography') from E
-
-try:
     import requests
 except Exception as E:
     print("You need requests run the next line: \npip install requests")
@@ -44,40 +38,9 @@ except FileNotFoundError:
         }
     }
 
-
-def get_fernet_key(encrypt_key) -> bytes:
-    """
-    Converts a String object to a 64 byte length key for python's encryption classes
-    :param encrypt_key: String used in the
-    :return: BYTES object of a Ferret KEY
-    """
-    salt = b"SuperSecretSalt"
-    iterations = 390000
-    kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=salt, iterations=iterations)
-    key = base64.urlsafe_b64encode(kdf.derive(encrypt_key.encode('utf-8')))
-    return key
-
-
-def get_encrypted_cache(temp_dir="temp/", fernet_key="") -> dict:
-    """
-    Returns the encrypted data as a Dictionary Object
-    :param temp_dir: location of the 'cached.enc' file
-    :param fernet_key: string of the encryption key
-    :return: dict of the encryption object
-    """
-    try:
-        fernet = Fernet(fernet_key)
-        with open(f'{temp_dir}cached.enc', 'r', encoding="utf-8") as fp:
-            enc_s = fp.read()
-        s = fernet.decrypt(enc_s)
-    except FileNotFoundError:
-        return {}
-    except Exception:
-        raise ValueError
-    return json.loads(s)
-
 def get_jamf_ea_format(ea_key, results):
     valid_keys = ['cve.list', 'cve.count', 'cve.countCritical', 'cve.countHigh', 'cve.CISA', 'cve.CISAPastDue']
+    print(ea_key)
     if ea_key not in valid_keys:
         return "invalid key"
 
@@ -140,21 +103,6 @@ def get_jamf_ea_format(ea_key, results):
                             if datetime.datetime.strftime(vuln['cisa']['dueDate'], "%Y-%m-%d") > datetime.datetime.now():
                                 return True
         return False
-
-def write_encrypted_cache(temp_dir="temp/", fernet_key="", data_dict={}) -> bool:
-    """
-    Writes the encrypted Data in the provided directory as cached.enc
-    :param temp_dir: path to the temp directory
-    :param encrypt_key: STR of the encryption key
-    :param data_dict: Data to write
-    :return: Boolean if written
-    """
-    fernet = Fernet(fernet_key)
-    enc_s = fernet.encrypt(data=json.dumps(data_dict, sort_keys=True).encode())
-    with open(f'{temp_dir}cached.enc', 'w+', encoding="utf-8") as fp:
-        fp.write(enc_s.decode('utf-8'))
-    return True
-
 
 def pipe_mac_terminal_command_json(cmd):
     """
@@ -271,6 +219,10 @@ def get_args() -> dict:
     for _arg in sys.argv:
         if '-token' in _arg:
             _args['token'] = _arg.split("=")[1].replace("\"", "")
+            if "”" in _args['token']:
+                _args['token'] = _args['token'].replace("”", "")
+            if "“" in _args['token']:
+                _args['token'] = _args['token'].replace("“", "")
 
         if '-force' in _arg:
             _args['force'] = True
@@ -279,13 +231,17 @@ def get_args() -> dict:
 
         if '-jamfea' in _arg:
             _args['jamfea'] = _arg.split("=")[1].replace("\"", "")
+            if "”" in _args['jamfea']:
+                _args['jamfea'] = _args['jamfea'].replace("”", "")
+            if "“" in _args['jamfea']:
+                _args['jamfea'] = _args['jamfea'].replace("“", "")
+
 
         if '-output' in _arg and not _output_set:
             value = _arg.split("=")[1].replace("\"", "")
             if value in valid_outputs:
                 _args['output'] = value
                 _output_set = True
-
     return _args
 
 
@@ -312,10 +268,8 @@ if __name__ == "__main__":
     headers = {'Content-Type': 'application/json', 'Authorization': f'Bearer {args["token"]}'}
     url = "https://feathers.pazops.com/api/macos/system_profiler"
 
-    try:
-        prev = get_encrypted_cache(fernet_key=get_fernet_key(args['token']))
-    except ValueError:
-        prev = {}
+
+    prev = {}
 
     if 'lastRun' in prev:
         time_last_run = time.time() - prev['lastRun']
@@ -329,17 +283,20 @@ if __name__ == "__main__":
     else:
         results = get_system_details()
         url = "https://feathers.pazops.com/api/macos/system_profiler"
-        results['vuln_info'] = requests.post(url=url, data=json.dumps(results, sort_keys=True), headers=headers).json()
-        write_encrypted_cache(fernet_key=get_fernet_key(args['token']), data_dict=results)
+        r = requests.post(url=url, data=json.dumps(results, sort_keys=True), headers=headers)
+        if r.status_code != 201:
+            print("<result>Failed API Call, Check Token</result>")
+            exit()
+        results['vuln_info'] = r.json()
 
     vuln_results = results['vuln_info']
-    write_encrypted_cache(fernet_key=get_fernet_key(args['token']), data_dict=results)
 
     #Build the Apps List
     vuln_apps = []
     stats = {"critical": 0, "high": 0, "medium": 0, "low": 0}
     cve_list = []
     app_list = []
+
     for app_data in vuln_results['app_data']:
         if app_data['feathers_supported'] and app_data['vuln_data'].get("cve_list", None) is not None:
             # Get the Application Data
@@ -365,5 +322,4 @@ if __name__ == "__main__":
     if args.get('jamfea', None) is not None:
         print(f"<result>{get_jamf_ea_format(args.get('jamfea'), results=vuln_results)}</result>")
     else:
-        print("other")
-
+        print(json.dumps(app_list, indent=2, sort_keys=True))

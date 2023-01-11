@@ -10,11 +10,6 @@ from subprocess import PIPE, STDOUT
 import subprocess
 import sys
 import hashlib
-import base64
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from cryptography.hazmat.primitives import hashes
-
-import logging
 
 if not os.path.exists("temp/"):
     os.mkdir("temp/")
@@ -277,7 +272,6 @@ if __name__ == "__main__":
             results = get_system_details()
             url = "https://feathers.pazops.com/api/macos/system_profiler"
             results['vuln_info'] = requests.post(url=url, data=json.dumps(results, sort_keys=True), headers=headers, timeout=10).json()
-            write_encrypted_cache(fernet_key=get_fernet_key(args['token']), data_dict=results)
         else:
             results = prev
     else:
